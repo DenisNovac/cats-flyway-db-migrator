@@ -5,6 +5,7 @@ object Dependencies {
   object Versions {
     val cats       = "2.6.1"
     val catsEffect = "3.2.9"
+    val chimney    = "0.6.1"
 
     val doobie = "1.0.0-RC1"
 
@@ -20,6 +21,7 @@ object Dependencies {
 
   val cats       = "org.typelevel" %% "cats-core"   % Versions.cats
   val catsEffect = "org.typelevel" %% "cats-effect" % Versions.catsEffect
+  val chimney    = "io.scalaland"  %% "chimney"     % Versions.chimney
 
   val doobie = Seq(
     "org.tpolecat" %% "doobie-core",
