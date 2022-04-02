@@ -1,9 +1,8 @@
 package com.github.denisnovac.multitest.model.repos
 
+import com.github.denisnovac.multitest.jdbc.DBContext
 import com.github.denisnovac.multitest.model.Status
-import doobie._
-import doobie.implicits._
-import doobie.implicits.javatimedrivernative.JavaTimeInstantMeta
+import doobie.ConnectionIO
 
 trait StatusRepo[F[_]] {
   def read(id: Int): F[Option[Status]]
@@ -11,17 +10,28 @@ trait StatusRepo[F[_]] {
   def delete(id: Int): F[Unit]
 }
 
-class StatusRepoImpl extends StatusRepo[ConnectionIO] {
+class StatusRepoImpl extends StatusRepo[ConnectionIO] with DBContext {
+  import quillContext._
+
+  private val table = quote(querySchema[Status]("statuses"))
 
   override def read(id: Int): ConnectionIO[Option[Status]] =
-    sql"SELECT * FROM statuses WHERE id = $id".query[Status].option
+    run(table.filter(_.uId == lift(id))).map(_.headOption)
 
   override def upsert(status: Status): ConnectionIO[Status] =
-    sql"""INSERT INTO statuses VALUES (
-      ${status.uId}, ${status.uStatus}, ${status.updatedAt}
-    ) ON CONFLICT UPDATE
-    """.update.run.map(_ => status)
+    run(
+      table
+        .insertValue(lift(status))
+        .onConflictUpdate(_.uId)(
+          (t, e) => t.uStatus -> e.uStatus,
+          (t, e) => t.updatedAt -> e.updatedAt
+        )
+        .returning(s => s)
+    )
 
   override def delete(id: Int): doobie.ConnectionIO[Unit] =
-    sql"DELETE FROM statuses WHERE id = $id".update.run.map(_ => ())
+    run(
+      table.filter(_.uId == lift(id)).delete
+    ).map(_ => ())
+
 }
